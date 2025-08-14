@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="cs">
+<meta charset="utf-8"/>
+<title>Asistent PPSR – jen z dokumentů</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 16px}
+  textarea{width:100%;height:120px}
+  pre{white-space:pre-wrap;background:#f6f6f6;padding:12px;border-radius:8px}
+  button{padding:10px 16px}
+</style>
+<h1>Asistent PPSR</h1>
+<p>Ptej se. Odpověď je jen z nahraných dokumentů.</p>
+<textarea id="q" placeholder="Sem napiš dotaz..."></textarea><br/>
+<button id="ask">Odeslat</button>
+<h3>Odpověď</h3>
+<pre id="out"></pre>
+<script>
+const api = "/ask";
+document.getElementById("ask").onclick = async () => {
+  const question = document.getElementById("q").value.trim();
+  if(!question) return;
+  document.getElementById("out").textContent = "⏳ Dotazuji…";
+  const res = await fetch(api, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({question})
+  });
+  const data = await res.json();
+  document.getElementById("out").textContent = data.answer || "(bez odpovědi)";
+};
+</script>
+</html>
