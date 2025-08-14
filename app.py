@@ -60,7 +60,7 @@ def ask(body: AskBody):
             {"role": "user", "content": body.question}
         ],
         "temperature": 0.01,
-        "max_output_tokens": 200,
+        "max_output_tokens": 350,
         "tools": [
             {
                 "type": "file_search",
@@ -117,3 +117,4 @@ def ask(body: AskBody):
     except Exception as e:
         logging.exception("CHYBA SERVERU")
         return {"answer": f"Chyba serveru: {e}"}
+
