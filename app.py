@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 import requests
 import os
 import logging
-import json
 
+# lokálně čte .env; na Renderu se použijí env vars z UI
 load_dotenv()
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
@@ -15,7 +15,7 @@ MODEL = os.getenv("MODEL", "gpt-4o-mini")
 VECTOR_STORE_ID = os.environ["VECTOR_STORE_ID"]
 
 OPENAI_URL = "https://api.openai.com/v1/responses"
-TIMEOUT = 25
+TIMEOUT = 25  # s
 
 app = FastAPI()
 app.add_middleware(
@@ -44,7 +44,7 @@ def ask(body: AskBody):
         "Odpovídej výhradně z poskytnutých úryvků (File Search). "
         "Nepoužívej žádné externí informace. "
         "Pokud odpověď není ve zdrojích, napiš: 'Nenašel jsem to ve zdrojích.' "
-        "Buď stručný: max 5 vět (≈200 slov). Přidej citace ve formátu [soubor: strana/sekce], pokud jsou dostupné."
+        "Buď stručný: max 5 vět (≈200 slov). Uváděj citace ve formátu [soubor: strana/sekce], pokud jsou dostupné."
     )
 
     headers = {
@@ -52,7 +52,7 @@ def ask(body: AskBody):
         "Content-Type": "application/json",
     }
 
-    # VARIANTA A: vše přímo v tools → file_search
+    # >>> klíčová změna: starší schéma Responses API – vector_store_ids přímo v tools[0]
     payload = {
         "model": MODEL,
         "input": [
@@ -64,14 +64,11 @@ def ask(body: AskBody):
         "tools": [
             {
                 "type": "file_search",
-                "file_search": {
-                    "vector_store_ids": [VECTOR_STORE_ID],
-                    "ranking_options": {"score_threshold": 0.35},
-                    "max_num_results": 8
-                }
+                "vector_store_ids": [VECTOR_STORE_ID],
+                "ranking_options": {"score_threshold": 0.35},
+                "max_num_results": 8
             }
         ],
-        # pokud by server trval na explicitním povolení, zkus i "tool_choice": "auto"
         "tool_choice": "auto"
     }
 
@@ -83,10 +80,10 @@ def ask(body: AskBody):
             r.raise_for_status()
         data = r.json()
 
-        # 1) jednoduchý případ
+        # 1) jednoduchá cesta, pokud je přítomná
         answer = data.get("output_text")
 
-        # 2) fallback – posbírat texty z celé struktury
+        # 2) fallback – rekurzivně posbírat textové bloky
         def pick_text(obj):
             out = []
             if isinstance(obj, dict):
